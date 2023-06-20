@@ -16,7 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    val player: Player
+    val player: Player,
+    val metaDataReader: MetaDataReader
 ): ViewModel() {
     private val videoUris = savedStateHandle.getStateFlow("videoUris", emptyList<Uri>())
 
@@ -25,7 +26,7 @@ class MainViewModel @Inject constructor(
             videoItem(
                 contentUri = uri,
                 mediaItem = MediaItem.fromUri(uri),
-                name = "No name"
+                name = metaDataReader.getMetaDataFromUri(uri)?.fileName ?:"No name"
 
             )
         }
