@@ -13,17 +13,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.media3.ui.PlayerView
 import com.compose.videoplayer.ui.theme.VideoPlayerTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +41,21 @@ class MainActivity : ComponentActivity() {
                         uri?.let(viewModel::addVideoUri)
                     }
                 )
+                var lifecycle by remember {
+                    mutableStateOf(Lifecycle.Event.ON_CREATE)
+                }
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer =  LifecycleEventObserver {_, event ->
+                            lifecycle = event
+
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -48,6 +67,21 @@ class MainActivity : ComponentActivity() {
                                 it.player = viewModel.player
                             }
                         },
+                        update = {
+                                 when(lifecycle) {
+                                     Lifecycle.Event.ON_PAUSE -> {
+                                         it.onPause()
+                                         it.player?.pause()
+                                     }
+
+                                     Lifecycle.Event.ON_RESUME -> {
+                                         it.onResume()
+                                     }
+                                     else -> Unit
+                                 }
+
+                        },
+
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(16 / 9f)
